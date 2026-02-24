@@ -9,11 +9,13 @@ import cors from 'cors';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import dotenv from 'dotenv';
+import multer from 'multer';
 
 dotenv.config();
 
 const execAsync = promisify(exec);
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-rffnet-vps';
+const upload = multer({ storage: multer.memoryStorage() });
 
 async function startServer() {
   const app = express();
@@ -24,7 +26,7 @@ async function startServer() {
   const PORT = 3000;
 
   app.use(cors());
-  app.use(express.json());
+  app.use(express.json({ limit: '50mb' }));
 
   // API Routes
   app.post('/api/auth/login', async (req, res) => {
@@ -136,7 +138,7 @@ async function startServer() {
       // Execute via SSH to ensure it runs as the logged in user (requires sudo if not root)
       const conn = new Client();
       conn.on('ready', () => {
-        conn.exec(`sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ${appName}`, (err, stream) => {
+        conn.exec(`export PATH=$PATH:/usr/bin:/bin:/usr/sbin:/sbin && sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ${appName}`, (err, stream) => {
           if (err) {
             conn.end();
             return res.status(500).json({ error: err.message });
@@ -165,6 +167,165 @@ async function startServer() {
       });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Helper to get SFTP connection
+  const getSftp = (user: any): Promise<{ conn: Client, sftp: any }> => {
+    return new Promise((resolve, reject) => {
+      if (user.isDummy) return reject(new Error('SFTP not available in simulated mode'));
+      const conn = new Client();
+      conn.on('ready', () => {
+        conn.sftp((err, sftp) => {
+          if (err) {
+            conn.end();
+            return reject(err);
+          }
+          resolve({ conn, sftp });
+        });
+      }).on('error', (err) => {
+        reject(err);
+      }).connect({
+        host: user.host,
+        port: user.port,
+        username: user.username,
+        password: user.password,
+        readyTimeout: 5000
+      });
+    });
+  };
+
+  // File Manager Routes
+  app.post('/api/files/list', authenticateToken, async (req: any, res) => {
+    const { path = '/' } = req.body;
+    try {
+      const { conn, sftp } = await getSftp(req.user);
+      sftp.readdir(path, (err: any, list: any) => {
+        conn.end();
+        if (err) return res.status(500).json({ error: err.message });
+        const files = list.map((item: any) => ({
+          name: item.filename,
+          isDir: item.attrs.isDirectory(),
+          size: item.attrs.size,
+          mtime: item.attrs.mtime * 1000,
+          permissions: item.attrs.mode.toString(8).slice(-3)
+        })).sort((a: any, b: any) => {
+          if (a.isDir && !b.isDir) return -1;
+          if (!a.isDir && b.isDir) return 1;
+          return a.name.localeCompare(b.name);
+        });
+        res.json({ files });
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/files/read', authenticateToken, async (req: any, res) => {
+    const { path } = req.body;
+    try {
+      const { conn, sftp } = await getSftp(req.user);
+      sftp.readFile(path, 'utf8', (err: any, data: any) => {
+        conn.end();
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ content: data });
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/files/write', authenticateToken, async (req: any, res) => {
+    const { path, content } = req.body;
+    try {
+      const { conn, sftp } = await getSftp(req.user);
+      sftp.writeFile(path, content, 'utf8', (err: any) => {
+        conn.end();
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ success: true });
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/files/create', authenticateToken, async (req: any, res) => {
+    const { path, isDir } = req.body;
+    try {
+      const { conn, sftp } = await getSftp(req.user);
+      if (isDir) {
+        sftp.mkdir(path, (err: any) => {
+          conn.end();
+          if (err) return res.status(500).json({ error: err.message });
+          res.json({ success: true });
+        });
+      } else {
+        sftp.writeFile(path, '', 'utf8', (err: any) => {
+          conn.end();
+          if (err) return res.status(500).json({ error: err.message });
+          res.json({ success: true });
+        });
+      }
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/files/delete', authenticateToken, async (req: any, res) => {
+    const { path, isDir } = req.body;
+    try {
+      const { conn, sftp } = await getSftp(req.user);
+      if (isDir) {
+        sftp.rmdir(path, (err: any) => {
+          conn.end();
+          if (err) return res.status(500).json({ error: err.message });
+          res.json({ success: true });
+        });
+      } else {
+        sftp.unlink(path, (err: any) => {
+          conn.end();
+          if (err) return res.status(500).json({ error: err.message });
+          res.json({ success: true });
+        });
+      }
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/files/chmod', authenticateToken, async (req: any, res) => {
+    const { path, mode } = req.body;
+    try {
+      const { conn, sftp } = await getSftp(req.user);
+      sftp.chmod(path, parseInt(mode, 8), (err: any) => {
+        conn.end();
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ success: true });
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/files/upload', authenticateToken, upload.single('file'), async (req: any, res) => {
+    const { path } = req.body;
+    const file = req.file;
+    if (!file) return res.status(400).json({ error: 'No file uploaded' });
+
+    try {
+      const { conn, sftp } = await getSftp(req.user);
+      const writeStream = sftp.createWriteStream(path);
+      writeStream.on('close', () => {
+        conn.end();
+        res.json({ success: true });
+      });
+      writeStream.on('error', (err: any) => {
+        conn.end();
+        res.status(500).json({ error: err.message });
+      });
+      writeStream.end(file.buffer);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
     }
   });
 
