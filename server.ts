@@ -122,38 +122,35 @@ async function startServer() {
     }
   });
 
-  app.post('/api/apps/install', authenticateToken, async (req: any, res) => {
-    const { appName } = req.body;
+  app.get('/api/apps/status', authenticateToken, async (req: any, res) => {
     const allowedApps = ['apache2', 'nginx', 'postfix', 'mariadb-server', 'phpmyadmin', 'php'];
     
-    if (!allowedApps.includes(appName)) {
-      return res.status(400).json({ error: 'App not allowed' });
-    }
-
     if (req.user.isDummy) {
-      return res.json({ message: `[Simulated] Successfully installed ${appName}` });
+      const dummyStatus = allowedApps.reduce((acc, app) => ({ ...acc, [app]: false }), {});
+      return res.json({ status: dummyStatus });
     }
 
     try {
-      // Execute via SSH to ensure it runs as the logged in user (requires sudo if not root)
       const conn = new Client();
       conn.on('ready', () => {
-        conn.exec(`export PATH=$PATH:/usr/bin:/bin:/usr/sbin:/sbin && sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ${appName}`, (err, stream) => {
+        // Check all apps at once using dpkg-query
+        const checkCmd = allowedApps.map(app => `dpkg-query -W -f='\${Status}' ${app} 2>/dev/null | grep -c "ok installed"`).join(' ; ');
+        
+        conn.exec(checkCmd, (err, stream) => {
           if (err) {
             conn.end();
             return res.status(500).json({ error: err.message });
           }
           let output = '';
-          stream.on('close', (code: any, signal: any) => {
+          stream.on('close', () => {
             conn.end();
-            if (code === 0) {
-              res.json({ message: `Successfully installed ${appName}`, output });
-            } else {
-              res.status(500).json({ error: `Installation failed with code ${code}`, output });
-            }
+            const results = output.trim().split('\n');
+            const status = allowedApps.reduce((acc, app, index) => {
+              acc[app] = results[index] === '1';
+              return acc;
+            }, {} as Record<string, boolean>);
+            res.json({ status });
           }).on('data', (data: any) => {
-            output += data.toString();
-          }).stderr.on('data', (data: any) => {
             output += data.toString();
           });
         });
@@ -167,6 +164,124 @@ async function startServer() {
       });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post('/api/apps/install', authenticateToken, async (req: any, res) => {
+    const { appName } = req.body;
+    const allowedApps = ['apache2', 'nginx', 'postfix', 'mariadb-server', 'phpmyadmin', 'php'];
+    
+    if (!allowedApps.includes(appName)) {
+      return res.status(400).json({ error: 'App not allowed' });
+    }
+
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Transfer-Encoding', 'chunked');
+
+    if (req.user.isDummy) {
+      res.write(`[Simulated] Starting installation of ${appName}...\n`);
+      setTimeout(() => {
+        res.write(`[Simulated] Successfully installed ${appName}\n`);
+        res.end();
+      }, 2000);
+      return;
+    }
+
+    try {
+      const conn = new Client();
+      conn.on('ready', () => {
+        conn.exec(`export PATH=$PATH:/usr/bin:/bin:/usr/sbin:/sbin && sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ${appName}`, (err, stream) => {
+          if (err) {
+            conn.end();
+            res.write(`Error: ${err.message}\n`);
+            return res.end();
+          }
+          
+          stream.on('close', (code: any, signal: any) => {
+            conn.end();
+            if (code === 0) {
+              res.write(`\n--- Successfully installed ${appName} ---\n`);
+            } else {
+              res.write(`\n--- Installation failed with code ${code} ---\n`);
+            }
+            res.end();
+          }).on('data', (data: any) => {
+            res.write(data.toString());
+          }).stderr.on('data', (data: any) => {
+            res.write(data.toString());
+          });
+        });
+      }).on('error', (err) => {
+        res.write(`SSH Connection failed: ${err.message}\n`);
+        res.end();
+      }).connect({
+        host: req.user.host,
+        port: req.user.port,
+        username: req.user.username,
+        password: req.user.password
+      });
+    } catch (error: any) {
+      res.write(`Error: ${error.message}\n`);
+      res.end();
+    }
+  });
+
+  app.post('/api/apps/remove', authenticateToken, async (req: any, res) => {
+    const { appName } = req.body;
+    const allowedApps = ['apache2', 'nginx', 'postfix', 'mariadb-server', 'phpmyadmin', 'php'];
+    
+    if (!allowedApps.includes(appName)) {
+      return res.status(400).json({ error: 'App not allowed' });
+    }
+
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Transfer-Encoding', 'chunked');
+
+    if (req.user.isDummy) {
+      res.write(`[Simulated] Starting removal of ${appName}...\n`);
+      setTimeout(() => {
+        res.write(`[Simulated] Successfully removed ${appName}\n`);
+        res.end();
+      }, 2000);
+      return;
+    }
+
+    try {
+      const conn = new Client();
+      conn.on('ready', () => {
+        conn.exec(`export PATH=$PATH:/usr/bin:/bin:/usr/sbin:/sbin && sudo DEBIAN_FRONTEND=noninteractive apt-get remove --purge -y ${appName} && sudo apt-get autoremove -y`, (err, stream) => {
+          if (err) {
+            conn.end();
+            res.write(`Error: ${err.message}\n`);
+            return res.end();
+          }
+          
+          stream.on('close', (code: any, signal: any) => {
+            conn.end();
+            if (code === 0) {
+              res.write(`\n--- Successfully removed ${appName} ---\n`);
+            } else {
+              res.write(`\n--- Removal failed with code ${code} ---\n`);
+            }
+            res.end();
+          }).on('data', (data: any) => {
+            res.write(data.toString());
+          }).stderr.on('data', (data: any) => {
+            res.write(data.toString());
+          });
+        });
+      }).on('error', (err) => {
+        res.write(`SSH Connection failed: ${err.message}\n`);
+        res.end();
+      }).connect({
+        host: req.user.host,
+        port: req.user.port,
+        username: req.user.username,
+        password: req.user.password
+      });
+    } catch (error: any) {
+      res.write(`Error: ${error.message}\n`);
+      res.end();
     }
   });
 

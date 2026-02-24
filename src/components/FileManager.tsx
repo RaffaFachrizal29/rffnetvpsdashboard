@@ -248,33 +248,33 @@ const FileManager = () => {
       <div className="h-full flex flex-col space-y-4">
         <header className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-zinc-100 flex items-center gap-2">
-              <File className="w-6 h-6 text-emerald-500" />
+            <h1 className="text-2xl font-bold text-text-base flex items-center gap-2">
+              <File className="w-6 h-6 text-accent-base" />
               {editingFile.name}
             </h1>
-            <p className="text-zinc-400 mt-1 text-sm">{currentPath}</p>
+            <p className="text-text-muted mt-1 text-sm">{currentPath}</p>
           </div>
           <div className="flex items-center gap-3">
             <button
               onClick={() => setEditingFile(null)}
-              className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-xl transition-colors text-sm font-medium flex items-center gap-2"
+              className="px-4 py-2 bg-bg-hover hover:bg-bg-hover text-text-base rounded-xl transition-colors text-sm font-medium flex items-center gap-2"
             >
               <X className="w-4 h-4" /> Cancel
             </button>
             <button
               onClick={handleSaveFile}
               disabled={savingFile}
-              className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 rounded-xl transition-colors text-sm font-semibold flex items-center gap-2 disabled:opacity-50"
+              className="px-4 py-2 bg-accent-base hover:bg-accent-hover text-zinc-950 rounded-xl transition-colors text-sm font-semibold flex items-center gap-2 disabled:opacity-50"
             >
               <Save className="w-4 h-4" /> {savingFile ? 'Saving...' : 'Save'}
             </button>
           </div>
         </header>
-        <div className="flex-1 bg-zinc-950 border border-zinc-800 rounded-2xl overflow-hidden">
+        <div className="flex-1 bg-bg-base border border-border-base rounded-2xl overflow-hidden">
           <textarea
             value={editingFile.content}
             onChange={(e) => setEditingFile({...editingFile, content: e.target.value})}
-            className="w-full h-full bg-transparent text-zinc-300 font-mono text-sm p-4 focus:outline-none resize-none"
+            className="w-full h-full bg-transparent text-text-muted font-mono text-sm p-4 focus:outline-none resize-none"
             spellCheck={false}
           />
         </div>
@@ -286,25 +286,25 @@ const FileManager = () => {
     <div className="space-y-6 h-full flex flex-col">
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-zinc-100">File Manager</h1>
-          <p className="text-zinc-400 mt-2">Manage your server files</p>
+          <h1 className="text-3xl font-bold text-text-base">File Manager</h1>
+          <p className="text-text-muted mt-2">Manage your server files</p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowNewFolder(true)}
-            className="px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-lg transition-colors text-sm font-medium flex items-center gap-2"
+            className="px-3 py-2 bg-bg-hover hover:bg-bg-hover text-text-base rounded-lg transition-colors text-sm font-medium flex items-center gap-2"
           >
             <Folder className="w-4 h-4" /> New Folder
           </button>
           <button
             onClick={() => setShowNewFile(true)}
-            className="px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-lg transition-colors text-sm font-medium flex items-center gap-2"
+            className="px-3 py-2 bg-bg-hover hover:bg-bg-hover text-text-base rounded-lg transition-colors text-sm font-medium flex items-center gap-2"
           >
             <File className="w-4 h-4" /> New File
           </button>
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="px-3 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg transition-colors text-sm font-medium flex items-center gap-2"
+            className="px-3 py-2 bg-accent-base/10 hover:bg-accent-base/20 text-accent-hover rounded-lg transition-colors text-sm font-medium flex items-center gap-2"
           >
             <Upload className="w-4 h-4" /> Upload
           </button>
@@ -317,17 +317,17 @@ const FileManager = () => {
         </div>
       </header>
 
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl flex-1 flex flex-col overflow-hidden">
+      <div className="bg-bg-panel border border-border-base rounded-2xl flex-1 flex flex-col overflow-hidden">
         {/* Breadcrumb */}
-        <div className="px-4 py-3 border-b border-zinc-800 flex items-center gap-2 bg-zinc-950/50">
-          <button onClick={handleNavigateHome} className="p-1.5 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 rounded-md transition-colors">
+        <div className="px-4 py-3 border-b border-border-base flex items-center gap-2 bg-bg-base/50">
+          <button onClick={handleNavigateHome} className="p-1.5 text-text-muted hover:text-text-base hover:bg-bg-hover rounded-md transition-colors">
             <Home className="w-4 h-4" />
           </button>
           <ChevronRight className="w-4 h-4 text-zinc-600" />
-          <div className="flex-1 flex items-center gap-1 overflow-x-auto no-scrollbar text-sm text-zinc-300">
+          <div className="flex-1 flex items-center gap-1 overflow-x-auto no-scrollbar text-sm text-text-muted">
             {currentPath}
           </div>
-          <button onClick={() => fetchFiles(currentPath)} className="p-1.5 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 rounded-md transition-colors">
+          <button onClick={() => fetchFiles(currentPath)} className="p-1.5 text-text-muted hover:text-text-base hover:bg-bg-hover rounded-md transition-colors">
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
@@ -338,60 +338,60 @@ const FileManager = () => {
             <div className="p-6 text-red-400 flex items-center justify-center h-full">
               <div className="text-center">
                 <p className="mb-4">{error}</p>
-                <button onClick={() => fetchFiles(currentPath)} className="px-4 py-2 bg-zinc-800 rounded-lg text-sm">Retry</button>
+                <button onClick={() => fetchFiles(currentPath)} className="px-4 py-2 bg-bg-hover rounded-lg text-sm">Retry</button>
               </div>
             </div>
           ) : (
             <table className="w-full text-left border-collapse">
-              <thead className="sticky top-0 bg-zinc-900 border-b border-zinc-800 z-10">
+              <thead className="sticky top-0 bg-bg-panel border-b border-border-base z-10">
                 <tr>
-                  <th className="px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wider w-1/2">Name</th>
-                  <th className="px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wider">Size</th>
-                  <th className="px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wider hidden sm:table-cell">Modified</th>
-                  <th className="px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wider hidden md:table-cell">Perms</th>
-                  <th className="px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wider text-right">Actions</th>
+                  <th className="px-4 py-3 text-xs font-medium text-text-muted uppercase tracking-wider w-1/2">Name</th>
+                  <th className="px-4 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Size</th>
+                  <th className="px-4 py-3 text-xs font-medium text-text-muted uppercase tracking-wider hidden sm:table-cell">Modified</th>
+                  <th className="px-4 py-3 text-xs font-medium text-text-muted uppercase tracking-wider hidden md:table-cell">Perms</th>
+                  <th className="px-4 py-3 text-xs font-medium text-text-muted uppercase tracking-wider text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-800/50">
                 {currentPath !== '/' && (
-                  <tr className="hover:bg-zinc-800/50 transition-colors cursor-pointer" onClick={handleNavigateUp}>
+                  <tr className="hover:bg-bg-hover/50 transition-colors cursor-pointer" onClick={handleNavigateUp}>
                     <td className="px-4 py-3 flex items-center gap-3">
-                      <Folder className="w-5 h-5 text-blue-400" />
-                      <span className="text-zinc-200 font-medium">..</span>
+                      <Folder className="w-5 h-5 text-blue-500" />
+                      <span className="text-text-base font-medium">..</span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-zinc-500">-</td>
-                    <td className="px-4 py-3 text-sm text-zinc-500 hidden sm:table-cell">-</td>
-                    <td className="px-4 py-3 text-sm text-zinc-500 hidden md:table-cell">-</td>
+                    <td className="px-4 py-3 text-sm text-text-muted">-</td>
+                    <td className="px-4 py-3 text-sm text-text-muted hidden sm:table-cell">-</td>
+                    <td className="px-4 py-3 text-sm text-text-muted hidden md:table-cell">-</td>
                     <td className="px-4 py-3 text-right"></td>
                   </tr>
                 )}
                 {files.map((file) => (
-                  <tr key={file.name} className="hover:bg-zinc-800/50 transition-colors group">
+                  <tr key={file.name} className="hover:bg-bg-hover/50 transition-colors group">
                     <td 
                       className="px-4 py-3 flex items-center gap-3 cursor-pointer"
                       onClick={() => file.isDir ? handleNavigate(file.name) : handleOpenFile(file.name)}
                     >
                       {file.isDir ? (
-                        <Folder className="w-5 h-5 text-blue-400" />
+                        <Folder className="w-5 h-5 text-blue-500" />
                       ) : (
-                        <File className="w-5 h-5 text-zinc-400" />
+                        <File className="w-5 h-5 text-text-muted" />
                       )}
-                      <span className="text-zinc-200 font-medium truncate">{file.name}</span>
+                      <span className="text-text-base font-medium truncate">{file.name}</span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-zinc-400">
+                    <td className="px-4 py-3 text-sm text-text-muted">
                       {file.isDir ? '-' : formatSize(file.size)}
                     </td>
-                    <td className="px-4 py-3 text-sm text-zinc-500 hidden sm:table-cell">
+                    <td className="px-4 py-3 text-sm text-text-muted hidden sm:table-cell">
                       {formatDate(file.mtime)}
                     </td>
-                    <td className="px-4 py-3 text-sm font-mono text-zinc-500 hidden md:table-cell">
+                    <td className="px-4 py-3 text-sm font-mono text-text-muted hidden md:table-cell">
                       {file.permissions}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button 
                           onClick={(e) => { e.stopPropagation(); setShowChmod({ name: file.name, perms: file.permissions }); }}
-                          className="p-1.5 text-zinc-400 hover:text-blue-400 hover:bg-blue-400/10 rounded-md transition-colors"
+                          className="p-1.5 text-text-muted hover:text-blue-500 hover:bg-blue-400/10 rounded-md transition-colors"
                           title="Change Permissions"
                         >
                           <Shield className="w-4 h-4" />
@@ -399,7 +399,7 @@ const FileManager = () => {
                         {!file.isDir && (
                           <button 
                             onClick={(e) => { e.stopPropagation(); handleOpenFile(file.name); }}
-                            className="p-1.5 text-zinc-400 hover:text-emerald-400 hover:bg-emerald-400/10 rounded-md transition-colors"
+                            className="p-1.5 text-text-muted hover:text-accent-hover hover:bg-accent-hover/10 rounded-md transition-colors"
                             title="Edit File"
                           >
                             <Edit2 className="w-4 h-4" />
@@ -407,7 +407,7 @@ const FileManager = () => {
                         )}
                         <button 
                           onClick={(e) => { e.stopPropagation(); handleDelete(file.name, file.isDir); }}
-                          className="p-1.5 text-zinc-400 hover:text-red-400 hover:bg-red-400/10 rounded-md transition-colors"
+                          className="p-1.5 text-text-muted hover:text-red-400 hover:bg-red-400/10 rounded-md transition-colors"
                           title="Delete"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -418,7 +418,7 @@ const FileManager = () => {
                 ))}
                 {files.length === 0 && !loading && currentPath === '/' && (
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-zinc-500">
+                    <td colSpan={5} className="px-4 py-8 text-center text-text-muted">
                       No files found
                     </td>
                   </tr>
@@ -432,8 +432,8 @@ const FileManager = () => {
       {/* Modals */}
       {(showNewFolder || showNewFile) && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 w-full max-w-md shadow-2xl">
-            <h3 className="text-xl font-bold text-zinc-100 mb-4">
+          <div className="bg-bg-panel border border-border-base rounded-2xl p-6 w-full max-w-md shadow-2xl">
+            <h3 className="text-xl font-bold text-text-base mb-4">
               Create New {showNewFolder ? 'Folder' : 'File'}
             </h3>
             <input
@@ -441,20 +441,20 @@ const FileManager = () => {
               value={newItemName}
               onChange={(e) => setNewItemName(e.target.value)}
               placeholder="Name"
-              className="w-full px-4 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 mb-6"
+              className="w-full px-4 py-2 bg-bg-base border border-border-base rounded-xl text-text-base placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-accent-base/50 mb-6"
               autoFocus
             />
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => { setShowNewFolder(false); setShowNewFile(false); setNewItemName(''); }}
-                className="px-4 py-2 text-zinc-400 hover:text-zinc-200 transition-colors"
+                className="px-4 py-2 text-text-muted hover:text-text-base transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleCreateItem(showNewFolder)}
                 disabled={!newItemName}
-                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 rounded-xl transition-colors font-medium disabled:opacity-50"
+                className="px-4 py-2 bg-accent-base hover:bg-accent-hover text-zinc-950 rounded-xl transition-colors font-medium disabled:opacity-50"
               >
                 Create
               </button>
@@ -465,29 +465,29 @@ const FileManager = () => {
 
       {showChmod && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 w-full max-w-md shadow-2xl">
-            <h3 className="text-xl font-bold text-zinc-100 mb-2">Change Permissions</h3>
-            <p className="text-sm text-zinc-400 mb-4">For {showChmod.name}</p>
+          <div className="bg-bg-panel border border-border-base rounded-2xl p-6 w-full max-w-md shadow-2xl">
+            <h3 className="text-xl font-bold text-text-base mb-2">Change Permissions</h3>
+            <p className="text-sm text-text-muted mb-4">For {showChmod.name}</p>
             <input
               type="text"
               value={newPerms}
               onChange={(e) => setNewPerms(e.target.value)}
               placeholder="e.g. 755 or 644"
-              className="w-full px-4 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 mb-6 font-mono"
+              className="w-full px-4 py-2 bg-bg-base border border-border-base rounded-xl text-text-base placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-accent-base/50 mb-6 font-mono"
               maxLength={3}
               autoFocus
             />
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => { setShowChmod(null); setNewPerms(''); }}
-                className="px-4 py-2 text-zinc-400 hover:text-zinc-200 transition-colors"
+                className="px-4 py-2 text-text-muted hover:text-text-base transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleChmod}
                 disabled={!newPerms || newPerms.length !== 3}
-                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 rounded-xl transition-colors font-medium disabled:opacity-50"
+                className="px-4 py-2 bg-accent-base hover:bg-accent-hover text-zinc-950 rounded-xl transition-colors font-medium disabled:opacity-50"
               >
                 Apply
               </button>

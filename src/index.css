@@ -4,4 +4,57 @@
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --color-bg-base: var(--bg-base);
+  --color-bg-panel: var(--bg-panel);
+  --color-bg-hover: var(--bg-hover);
+  --color-text-base: var(--text-base);
+  --color-text-muted: var(--text-muted);
+  --color-border-base: var(--border-base);
+  
+  --color-accent-base: var(--accent-base);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-light: var(--accent-light);
+}
+
+@layer base {
+  body {
+    @apply bg-bg-base text-text-base;
+  }
+
+  :root {
+    /* Default Dark Theme (Zinc) */
+    --bg-base: var(--color-zinc-950);
+    --bg-panel: var(--color-zinc-900);
+    --bg-hover: var(--color-zinc-800);
+    --text-base: var(--color-zinc-100);
+    --text-muted: var(--color-zinc-400);
+    --border-base: var(--color-zinc-800);
+    
+    /* Default Accent (Emerald) */
+    --accent-base: var(--color-emerald-500);
+    --accent-hover: var(--color-emerald-400);
+    --accent-light: var(--color-emerald-500/10);
+  }
+
+  .theme-light {
+    --bg-base: var(--color-zinc-50);
+    --bg-panel: var(--color-white);
+    --bg-hover: var(--color-zinc-100);
+    --text-base: var(--color-zinc-900);
+    --text-muted: var(--color-zinc-500);
+    --border-base: var(--color-zinc-200);
+  }
+
+  .accent-blue {
+    --accent-base: var(--color-blue-500);
+    --accent-hover: var(--color-blue-600);
+    --accent-light: var(--color-blue-500/10);
+  }
+
+  .accent-purple {
+    --accent-base: var(--color-purple-500);
+    --accent-hover: var(--color-purple-600);
+    --accent-light: var(--color-purple-500/10);
+  }
 }

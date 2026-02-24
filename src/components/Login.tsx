@@ -42,17 +42,17 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 font-sans text-zinc-100">
+    <div className="min-h-screen bg-bg-base flex items-center justify-center p-4 font-sans text-text-base">
       <div className="w-full max-w-md">
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-emerald-500/10 text-emerald-500 mb-6">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-accent-base/10 text-accent-base mb-6">
             <TerminalSquare className="w-8 h-8" />
           </div>
           <h1 className="text-4xl font-bold tracking-tight text-white mb-2">Rffnet</h1>
-          <p className="text-zinc-400">Sign in with your VPS credentials</p>
+          <p className="text-text-muted">Sign in with your VPS credentials</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-zinc-900 border border-zinc-800 rounded-3xl p-8 shadow-2xl">
+        <form onSubmit={handleSubmit} className="bg-bg-panel border border-border-base rounded-3xl p-8 shadow-2xl">
           {error && (
             <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
               {error}
@@ -61,16 +61,16 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
           <div className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-2">Host</label>
+              <label className="block text-sm font-medium text-text-muted mb-2">Host</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Server className="h-5 w-5 text-zinc-500" />
+                  <Server className="h-5 w-5 text-text-muted" />
                 </div>
                 <input
                   type="text"
                   value={host}
                   onChange={(e) => setHost(e.target.value)}
-                  className="block w-full pl-11 pr-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-colors"
+                  className="block w-full pl-11 pr-4 py-3 bg-bg-base border border-border-base rounded-xl text-text-base placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-accent-base/50 focus:border-accent-base transition-colors"
                   placeholder="127.0.0.1"
                   required
                 />
@@ -79,28 +79,28 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
             <div className="grid grid-cols-3 gap-4">
               <div className="col-span-2">
-                <label className="block text-sm font-medium text-zinc-400 mb-2">Username</label>
+                <label className="block text-sm font-medium text-text-muted mb-2">Username</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <User className="h-5 w-5 text-zinc-500" />
+                    <User className="h-5 w-5 text-text-muted" />
                   </div>
                   <input
                     type="text"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className="block w-full pl-11 pr-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-colors"
+                    className="block w-full pl-11 pr-4 py-3 bg-bg-base border border-border-base rounded-xl text-text-base placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-accent-base/50 focus:border-accent-base transition-colors"
                     placeholder="root"
                     required
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-2">Port</label>
+                <label className="block text-sm font-medium text-text-muted mb-2">Port</label>
                 <input
                   type="number"
                   value={port}
                   onChange={(e) => setPort(e.target.value)}
-                  className="block w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-colors"
+                  className="block w-full px-4 py-3 bg-bg-base border border-border-base rounded-xl text-text-base placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-accent-base/50 focus:border-accent-base transition-colors"
                   placeholder="22"
                   required
                 />
@@ -108,16 +108,16 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-2">Password</label>
+              <label className="block text-sm font-medium text-text-muted mb-2">Password</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-zinc-500" />
+                  <Lock className="h-5 w-5 text-text-muted" />
                 </div>
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-11 pr-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-colors"
+                  className="block w-full pl-11 pr-4 py-3 bg-bg-base border border-border-base rounded-xl text-text-base placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-accent-base/50 focus:border-accent-base transition-colors"
                   placeholder="••••••••"
                   required
                 />
@@ -127,7 +127,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-semibold text-zinc-950 bg-emerald-500 hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 focus:ring-offset-zinc-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-8"
+              className="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-semibold text-zinc-950 bg-accent-base hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 focus:ring-offset-zinc-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-8"
             >
               {loading ? 'Connecting...' : 'Connect to VPS'}
             </button>

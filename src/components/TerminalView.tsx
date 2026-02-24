@@ -79,11 +79,11 @@ const TerminalView = () => {
   return (
     <div className="h-full flex flex-col space-y-4">
       <header>
-        <h1 className="text-3xl font-bold text-zinc-100">Terminal</h1>
-        <p className="text-zinc-400 mt-2">Direct SSH access to your VPS</p>
+        <h1 className="text-3xl font-bold text-text-base">Terminal</h1>
+        <p className="text-text-muted mt-2">Direct SSH access to your VPS</p>
       </header>
       
-      <div className="flex-1 bg-zinc-950 border border-zinc-800 rounded-2xl overflow-hidden p-4 shadow-2xl">
+      <div className="flex-1 bg-bg-base border border-border-base rounded-2xl overflow-hidden p-4 shadow-2xl">
         <div ref={terminalRef} className="w-full h-full" />
       </div>
     </div>
