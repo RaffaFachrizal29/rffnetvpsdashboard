@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Terminal, Package, LogOut, BookOpen } from 'lucide-react';
+import { LayoutDashboard, Terminal, Package, LogOut, FolderOpen } from 'lucide-react';
 
 interface SidebarProps {
   onLogout: () => void;
@@ -11,7 +11,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
     { name: 'Summary', path: '/', icon: LayoutDashboard },
     { name: 'Terminal', path: '/terminal', icon: Terminal },
     { name: 'App Installer', path: '/apps', icon: Package },
-    { name: 'Install Guide', path: '/install-guide', icon: BookOpen },
+    { name: 'File Manager', path: '/files', icon: FolderOpen },
   ];
 
   return (

@@ -5,7 +5,7 @@ import Dashboard from './components/Dashboard';
 import TerminalView from './components/TerminalView';
 import AppInstaller from './components/AppInstaller';
 import Login from './components/Login';
-import InstallGuide from './components/InstallGuide';
+import FileManager from './components/FileManager';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -40,7 +40,7 @@ function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/terminal" element={<TerminalView />} />
             <Route path="/apps" element={<AppInstaller />} />
-            <Route path="/install-guide" element={<InstallGuide />} />
+            <Route path="/files" element={<FileManager />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
