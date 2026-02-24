@@ -35,9 +35,20 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
 
   return (
     <aside className="w-64 bg-bg-panel border-r border-border-base flex flex-col">
-      <div className="p-6">
-        <h1 className="text-2xl font-bold tracking-tight text-accent-base">Rffnet</h1>
-        <p className="text-xs text-text-muted mt-1">VPS Management</p>
+      <div className="p-6 flex items-center gap-3">
+        <img 
+          src="/logo.png" 
+          alt="Rffnet Logo" 
+          className="w-10 h-10 object-contain rounded-lg"
+          onError={(e) => {
+            // Fallback if logo.png is not found
+            (e.target as HTMLImageElement).style.display = 'none';
+          }}
+        />
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-accent-base">Rffnet</h1>
+          <p className="text-xs text-text-muted mt-1">VPS Management</p>
+        </div>
       </div>
       
       <nav className="flex-1 px-4 space-y-2">

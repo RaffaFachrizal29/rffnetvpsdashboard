@@ -70,12 +70,13 @@ async function startServer() {
 
   app.get('/api/stats', authenticateToken, async (req: any, res) => {
     try {
-      const [cpu, mem, os, net, disk] = await Promise.all([
+      const [cpu, mem, os, net, disk, time] = await Promise.all([
         si.cpu(),
         si.mem(),
         si.osInfo(),
         si.networkInterfaces(),
-        si.fsSize()
+        si.fsSize(),
+        si.time()
       ]);
 
       // Find IPv6
@@ -115,7 +116,8 @@ async function startServer() {
         },
         network: {
           ipv6: ipv6 || 'Not available'
-        }
+        },
+        uptime: time.uptime
       });
     } catch (error: any) {
       res.status(500).json({ error: error.message });

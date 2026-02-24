@@ -1,7 +1,10 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
+import { WebLinksAddon } from '@xterm/addon-web-links';
+import { ClipboardAddon } from '@xterm/addon-clipboard';
 import { io, Socket } from 'socket.io-client';
+import { Copy, ClipboardPaste, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
 import '@xterm/xterm/css/xterm.css';
 
 const TerminalView = () => {
@@ -9,6 +12,7 @@ const TerminalView = () => {
   const socketRef = useRef<Socket | null>(null);
   const xtermRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
+  const [fontSize, setFontSize] = useState(14);
 
   useEffect(() => {
     if (!terminalRef.current) return;
@@ -22,11 +26,14 @@ const TerminalView = () => {
         selectionBackground: '#10b98140',
       },
       fontFamily: '"JetBrains Mono", "Fira Code", monospace',
-      fontSize: 14,
+      fontSize: fontSize,
+      rightClickSelectsWord: true,
     });
     
     const fitAddon = new FitAddon();
     term.loadAddon(fitAddon);
+    term.loadAddon(new WebLinksAddon());
+    term.loadAddon(new ClipboardAddon());
     
     term.open(terminalRef.current);
     fitAddon.fit();
@@ -76,14 +83,77 @@ const TerminalView = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (xtermRef.current) {
+      xtermRef.current.options.fontSize = fontSize;
+      if (fitAddonRef.current) {
+        fitAddonRef.current.fit();
+        if (socketRef.current) {
+          socketRef.current.emit('resize', { cols: xtermRef.current.cols, rows: xtermRef.current.rows });
+        }
+      }
+    }
+  }, [fontSize]);
+
+  const handleCopy = () => {
+    if (xtermRef.current && xtermRef.current.hasSelection()) {
+      document.execCommand('copy');
+      xtermRef.current.clearSelection();
+    }
+  };
+
+  const handlePaste = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (socketRef.current) {
+        socketRef.current.emit('data', text);
+      }
+    } catch (err) {
+      console.error('Failed to read clipboard contents: ', err);
+    }
+  };
+
+  const handleZoomIn = () => setFontSize(prev => Math.min(prev + 2, 32));
+  const handleZoomOut = () => setFontSize(prev => Math.max(prev - 2, 8));
+  const handleFit = () => {
+    if (fitAddonRef.current) {
+      fitAddonRef.current.fit();
+      if (socketRef.current && xtermRef.current) {
+        socketRef.current.emit('resize', { cols: xtermRef.current.cols, rows: xtermRef.current.rows });
+      }
+    }
+  };
+
   return (
     <div className="h-full flex flex-col space-y-4">
-      <header>
-        <h1 className="text-3xl font-bold text-text-base">Terminal</h1>
-        <p className="text-text-muted mt-2">Direct SSH access to your VPS</p>
+      <header className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-text-base">Terminal</h1>
+          <p className="text-text-muted mt-2">Direct SSH access to your VPS</p>
+        </div>
+        <div className="flex items-center gap-2 bg-bg-panel border border-border-base p-1.5 rounded-xl">
+          <button onClick={handleCopy} className="p-2 text-text-muted hover:text-text-base hover:bg-bg-hover rounded-lg transition-colors" title="Copy Selection">
+            <Copy className="w-4 h-4" />
+          </button>
+          <button onClick={handlePaste} className="p-2 text-text-muted hover:text-text-base hover:bg-bg-hover rounded-lg transition-colors" title="Paste">
+            <ClipboardPaste className="w-4 h-4" />
+          </button>
+          <div className="w-px h-6 bg-border-base mx-1"></div>
+          <button onClick={handleZoomOut} className="p-2 text-text-muted hover:text-text-base hover:bg-bg-hover rounded-lg transition-colors" title="Zoom Out">
+            <ZoomOut className="w-4 h-4" />
+          </button>
+          <span className="text-xs font-mono text-text-muted w-8 text-center">{fontSize}px</span>
+          <button onClick={handleZoomIn} className="p-2 text-text-muted hover:text-text-base hover:bg-bg-hover rounded-lg transition-colors" title="Zoom In">
+            <ZoomIn className="w-4 h-4" />
+          </button>
+          <div className="w-px h-6 bg-border-base mx-1"></div>
+          <button onClick={handleFit} className="p-2 text-text-muted hover:text-text-base hover:bg-bg-hover rounded-lg transition-colors" title="Fit to Screen">
+            <Maximize className="w-4 h-4" />
+          </button>
+        </div>
       </header>
       
-      <div className="flex-1 bg-bg-base border border-border-base rounded-2xl overflow-hidden p-4 shadow-2xl">
+      <div className="flex-1 bg-[#09090b] border border-border-base rounded-2xl overflow-hidden p-4 shadow-2xl">
         <div ref={terminalRef} className="w-full h-full" />
       </div>
     </div>

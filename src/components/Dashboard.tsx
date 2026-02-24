@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Server, Cpu, MemoryStick, HardDrive, Network } from 'lucide-react';
+import { Server, Cpu, MemoryStick, HardDrive, Network, Clock } from 'lucide-react';
 
 const Dashboard = () => {
   const [stats, setStats] = useState<any>(null);
@@ -30,8 +30,8 @@ const Dashboard = () => {
     return () => clearInterval(interval);
   }, []);
 
-  if (loading) return <div className="text-text-muted animate-pulse">Loading resources...</div>;
-  if (error) return <div className="text-red-400 bg-red-500/10 p-4 rounded-xl">{error}</div>;
+  if (loading && !stats) return <div className="text-text-muted animate-pulse">Loading resources...</div>;
+  if (error && !stats) return <div className="text-red-400 bg-red-500/10 p-4 rounded-xl">{error}</div>;
   if (!stats) return null;
 
   const formatBytes = (bytes: number) => {
@@ -42,14 +42,33 @@ const Dashboard = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  const formatUptime = (seconds: number) => {
+    const d = Math.floor(seconds / (3600 * 24));
+    const h = Math.floor(seconds % (3600 * 24) / 3600);
+    const m = Math.floor(seconds % 3600 / 60);
+    
+    const parts = [];
+    if (d > 0) parts.push(`${d}d`);
+    if (h > 0) parts.push(`${h}h`);
+    if (m > 0) parts.push(`${m}m`);
+    
+    return parts.join(' ') || '< 1m';
+  };
+
   const memPercent = ((stats.memory.used / stats.memory.total) * 100).toFixed(1);
   const diskPercent = stats.disk[0] ? stats.disk[0].use.toFixed(1) : 0;
 
   return (
     <div className="space-y-8">
-      <header>
-        <h1 className="text-3xl font-bold text-text-base">VPS Summary</h1>
-        <p className="text-text-muted mt-2">Real-time resource monitoring</p>
+      <header className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-text-base">VPS Summary</h1>
+          <p className="text-text-muted mt-2">Real-time resource monitoring</p>
+        </div>
+        <div className="flex items-center gap-2 px-4 py-2 bg-bg-panel border border-border-base rounded-xl">
+          <Clock className="w-4 h-4 text-accent-base" />
+          <span className="text-sm font-medium text-text-base">Uptime: {formatUptime(stats.uptime)}</span>
+        </div>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -76,7 +95,7 @@ const Dashboard = () => {
           </div>
           <div className="text-2xl font-semibold">{memPercent}%</div>
           <div className="w-full bg-bg-hover rounded-full h-1.5 mt-4">
-            <div className="bg-blue-500 h-1.5 rounded-full" style={{ width: `${memPercent}%` }}></div>
+            <div className="bg-blue-500 h-1.5 rounded-full transition-all duration-500" style={{ width: `${memPercent}%` }}></div>
           </div>
           <div className="text-sm text-text-muted mt-3 flex justify-between">
             <span>{formatBytes(stats.memory.used)} used</span>
@@ -94,7 +113,7 @@ const Dashboard = () => {
           </div>
           <div className="text-2xl font-semibold">{diskPercent}%</div>
           <div className="w-full bg-bg-hover rounded-full h-1.5 mt-4">
-            <div className="bg-purple-500 h-1.5 rounded-full" style={{ width: `${diskPercent}%` }}></div>
+            <div className="bg-purple-500 h-1.5 rounded-full transition-all duration-500" style={{ width: `${diskPercent}%` }}></div>
           </div>
           <div className="text-sm text-text-muted mt-3 flex justify-between">
             {stats.disk[0] && (
