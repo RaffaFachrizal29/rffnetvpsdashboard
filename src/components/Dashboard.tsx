@@ -65,13 +65,9 @@ const Dashboard = () => {
           <h1 className="text-3xl font-bold text-text-base">VPS Summary</h1>
           <p className="text-text-muted mt-2">Real-time resource monitoring</p>
         </div>
-        <div className="flex items-center gap-2 px-4 py-2 bg-bg-panel border border-border-base rounded-xl">
-          <Clock className="w-4 h-4 text-accent-base" />
-          <span className="text-sm font-medium text-text-base">Uptime: {formatUptime(stats.uptime)}</span>
-        </div>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         {/* CPU Card */}
         <div className="bg-bg-panel border border-border-base p-6 rounded-2xl shadow-sm">
           <div className="flex items-center justify-between mb-4">
@@ -119,7 +115,7 @@ const Dashboard = () => {
             {stats.disk[0] && (
               <>
                 <span>{formatBytes(stats.disk[0].used)} used</span>
-                <span>{formatBytes(stats.disk[0].size)} total</span>
+                <span>{formatBytes(stats.disk[0].size - stats.disk[0].used)} free</span>
               </>
             )}
           </div>
@@ -135,6 +131,18 @@ const Dashboard = () => {
           </div>
           <div className="text-sm font-mono text-text-muted break-all">{stats.network.ipv6}</div>
           <div className="text-xs text-text-muted mt-2 uppercase tracking-wider font-semibold">IPv6 Address</div>
+        </div>
+
+        {/* Uptime Card */}
+        <div className="bg-bg-panel border border-border-base p-6 rounded-2xl shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-text-muted font-medium">Uptime</h3>
+            <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-500">
+              <Clock className="w-5 h-5" />
+            </div>
+          </div>
+          <div className="text-2xl font-semibold">{formatUptime(stats.uptime)}</div>
+          <div className="text-xs text-text-muted mt-2 uppercase tracking-wider font-semibold">Server Uptime</div>
         </div>
       </div>
 
