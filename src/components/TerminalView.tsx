@@ -4,7 +4,7 @@ import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import { ClipboardAddon } from '@xterm/addon-clipboard';
 import { io, Socket } from 'socket.io-client';
-import { Copy, ClipboardPaste, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
+import { Copy, ClipboardPaste, ZoomIn, ZoomOut, Maximize, Minimize } from 'lucide-react';
 import '@xterm/xterm/css/xterm.css';
 
 const TerminalView = () => {
@@ -13,6 +13,8 @@ const TerminalView = () => {
   const xtermRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
   const [fontSize, setFontSize] = useState(14);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     if (!terminalRef.current) return;
@@ -115,17 +117,42 @@ const TerminalView = () => {
 
   const handleZoomIn = () => setFontSize(prev => Math.min(prev + 2, 32));
   const handleZoomOut = () => setFontSize(prev => Math.max(prev - 2, 8));
-  const handleFit = () => {
-    if (fitAddonRef.current) {
-      fitAddonRef.current.fit();
-      if (socketRef.current && xtermRef.current) {
-        socketRef.current.emit('resize', { cols: xtermRef.current.cols, rows: xtermRef.current.rows });
+  const handleFit = async () => {
+    if (!containerRef.current) return;
+
+    try {
+      if (!document.fullscreenElement) {
+        await containerRef.current.requestFullscreen();
+        setIsFullscreen(true);
+      } else {
+        await document.exitFullscreen();
+        setIsFullscreen(false);
       }
+    } catch (err) {
+      console.error('Error attempting to enable fullscreen:', err);
     }
   };
 
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+      // Wait a bit for the layout to settle before fitting
+      setTimeout(() => {
+        if (fitAddonRef.current) {
+          fitAddonRef.current.fit();
+          if (socketRef.current && xtermRef.current) {
+            socketRef.current.emit('resize', { cols: xtermRef.current.cols, rows: xtermRef.current.rows });
+          }
+        }
+      }, 100);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
   return (
-    <div className="h-full flex flex-col space-y-4">
+    <div ref={containerRef} className={`h-full flex flex-col space-y-4 ${isFullscreen ? 'bg-bg-base p-4' : ''}`}>
       <header className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-text-base">Terminal</h1>
@@ -147,13 +174,15 @@ const TerminalView = () => {
             <ZoomIn className="w-4 h-4" />
           </button>
           <div className="w-px h-6 bg-border-base mx-1"></div>
-          <button onClick={handleFit} className="p-2 text-text-muted hover:text-text-base hover:bg-bg-hover rounded-lg transition-colors" title="Fit to Screen">
-            <Maximize className="w-4 h-4" />
+          <button onClick={handleFit} className="p-2 text-text-muted hover:text-text-base hover:bg-bg-hover rounded-lg transition-colors" title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}>
+            {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
           </button>
         </div>
       </header>
       
-      <div className="flex-1 bg-[#09090b] border border-border-base rounded-2xl overflow-hidden p-4 shadow-2xl">
+      <div 
+        className={`flex-1 bg-[#09090b] border border-border-base rounded-2xl overflow-hidden p-4 shadow-2xl`}
+      >
         <div ref={terminalRef} className="w-full h-full" />
       </div>
     </div>

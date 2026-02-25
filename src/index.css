@@ -24,37 +24,37 @@
 
   :root {
     /* Default Dark Theme (Zinc) */
-    --bg-base: var(--color-zinc-950);
-    --bg-panel: var(--color-zinc-900);
-    --bg-hover: var(--color-zinc-800);
-    --text-base: var(--color-zinc-100);
-    --text-muted: var(--color-zinc-400);
-    --border-base: var(--color-zinc-800);
+    --bg-base: #09090b;
+    --bg-panel: #18181b;
+    --bg-hover: #27272a;
+    --text-base: #f4f4f5;
+    --text-muted: #a1a1aa;
+    --border-base: #27272a;
     
     /* Default Accent (Emerald) */
-    --accent-base: var(--color-emerald-500);
-    --accent-hover: var(--color-emerald-400);
-    --accent-light: var(--color-emerald-500/10);
+    --accent-base: #10b981;
+    --accent-hover: #34d399;
+    --accent-light: rgba(16, 185, 129, 0.1);
   }
 
   .theme-light {
-    --bg-base: var(--color-zinc-50);
-    --bg-panel: var(--color-white);
-    --bg-hover: var(--color-zinc-100);
-    --text-base: var(--color-zinc-900);
-    --text-muted: var(--color-zinc-500);
-    --border-base: var(--color-zinc-200);
+    --bg-base: #fafafa;
+    --bg-panel: #ffffff;
+    --bg-hover: #f4f4f5;
+    --text-base: #09090b;
+    --text-muted: #71717a;
+    --border-base: #e4e4e7;
   }
 
   .accent-blue {
-    --accent-base: var(--color-blue-500);
-    --accent-hover: var(--color-blue-600);
-    --accent-light: var(--color-blue-500/10);
+    --accent-base: #3b82f6;
+    --accent-hover: #2563eb;
+    --accent-light: rgba(59, 130, 246, 0.1);
   }
 
   .accent-purple {
-    --accent-base: var(--color-purple-500);
-    --accent-hover: var(--color-purple-600);
-    --accent-light: var(--color-purple-500/10);
+    --accent-base: #a855f7;
+    --accent-hover: #9333ea;
+    --accent-light: rgba(168, 85, 247, 0.1);
   }
 }
