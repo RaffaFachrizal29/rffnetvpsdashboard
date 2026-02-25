@@ -17,14 +17,46 @@ function App() {
     }
   }, []);
 
+  const handleLogout = React.useCallback(() => {
+    localStorage.removeItem('token');
+    setIsAuthenticated(false);
+  }, []);
+
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
+    const resetTimeout = () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      // 3 minutes = 180,000 milliseconds
+      timeoutId = setTimeout(() => {
+        if (isAuthenticated) {
+          handleLogout();
+        }
+      }, 180000);
+    };
+
+    if (isAuthenticated) {
+      // Set initial timeout
+      resetTimeout();
+
+      // Add event listeners for user activity
+      const events = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart'];
+      events.forEach(event => {
+        window.addEventListener(event, resetTimeout);
+      });
+
+      return () => {
+        if (timeoutId) clearTimeout(timeoutId);
+        events.forEach(event => {
+          window.removeEventListener(event, resetTimeout);
+        });
+      };
+    }
+  }, [isAuthenticated, handleLogout]);
+
   const handleLogin = (token: string) => {
     localStorage.setItem('token', token);
     setIsAuthenticated(true);
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    setIsAuthenticated(false);
   };
 
   if (!isAuthenticated) {
