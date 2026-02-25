@@ -8,7 +8,6 @@ interface LoginProps {
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [host, setHost] = useState('127.0.0.1');
   const [port, setPort] = useState('22');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -24,7 +23,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ username, password, host, port: parseInt(port) }),
+        body: JSON.stringify({ username, password, host: '127.0.0.1', port: parseInt(port) }),
       });
 
       const data = await res.json();
@@ -60,23 +59,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           )}
 
           <div className="space-y-5">
-            <div>
-              <label className="block text-sm font-medium text-text-muted mb-2">Host</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Server className="h-5 w-5 text-text-muted" />
-                </div>
-                <input
-                  type="text"
-                  value={host}
-                  onChange={(e) => setHost(e.target.value)}
-                  className="block w-full pl-11 pr-4 py-3 bg-bg-base border border-border-base rounded-xl text-text-base placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-accent-base/50 focus:border-accent-base transition-colors"
-                  placeholder="127.0.0.1"
-                  required
-                />
-              </div>
-            </div>
-
             <div className="grid grid-cols-3 gap-4">
               <div className="col-span-2">
                 <label className="block text-sm font-medium text-text-muted mb-2">Username</label>
