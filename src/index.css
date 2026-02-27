@@ -1,92 +1,60 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Courier+Prime:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "Courier Prime", ui-monospace, SFMono-Regular, monospace;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --color-bg-base: var(--bg-base);
+  --color-bg-panel: var(--bg-panel);
+  --color-bg-hover: var(--bg-hover);
+  --color-text-base: var(--text-base);
+  --color-text-muted: var(--text-muted);
+  --color-border-base: var(--border-base);
+  
+  --color-accent-base: var(--accent-base);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-light: var(--accent-light);
 }
 
-html {
-  scroll-behavior: smooth;
-}
+@layer base {
+  body {
+    @apply bg-bg-base text-text-base;
+  }
 
-body {
-  background-color: #f4f0e6;
-  color: #111;
-  background-image: radial-gradient(#d1ccc0 1px, transparent 1px);
-  background-size: 20px 20px;
-}
+  :root {
+    /* Default Dark Theme (Zinc) */
+    --bg-base: #09090b;
+    --bg-panel: #18181b;
+    --bg-hover: #27272a;
+    --text-base: #f4f4f5;
+    --text-muted: #a1a1aa;
+    --border-base: #27272a;
+    
+    /* Default Accent (Emerald) */
+    --accent-base: #10b981;
+    --accent-hover: #34d399;
+    --accent-light: rgba(16, 185, 129, 0.1);
+  }
 
-.brutal-border {
-  border: 3px solid #111;
-}
+  .theme-light {
+    --bg-base: #fafafa;
+    --bg-panel: #ffffff;
+    --bg-hover: #f4f4f5;
+    --text-base: #09090b;
+    --text-muted: #71717a;
+    --border-base: #e4e4e7;
+  }
 
-.brutal-shadow {
-  box-shadow: 6px 6px 0px 0px #111;
-  transition: transform 0.1s, box-shadow 0.1s;
-}
+  .accent-blue {
+    --accent-base: #3b82f6;
+    --accent-hover: #2563eb;
+    --accent-light: rgba(59, 130, 246, 0.1);
+  }
 
-.brutal-shadow-sm {
-  box-shadow: 3px 3px 0px 0px #111;
-}
-
-button.brutal-shadow:hover, a.brutal-shadow:hover {
-  transform: translate(2px, 2px);
-  box-shadow: 4px 4px 0px 0px #111;
-}
-
-button.brutal-shadow:active, a.brutal-shadow:active {
-  transform: translate(6px, 6px);
-  box-shadow: 0px 0px 0px 0px #111;
-}
-
-/* Custom Range Slider */
-input[type=range] {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  background: transparent;
-}
-
-input[type=range]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  height: 24px;
-  width: 24px;
-  border-radius: 0;
-  background: #FF007F;
-  border: 3px solid #111;
-  cursor: pointer;
-  margin-top: -8px;
-  box-shadow: 2px 2px 0px 0px #111;
-}
-
-input[type=range]::-webkit-slider-runnable-track {
-  width: 100%;
-  height: 12px;
-  cursor: pointer;
-  background: #fff;
-  border: 3px solid #111;
-}
-
-/* Firefox */
-input[type=range]::-moz-range-thumb {
-  height: 24px;
-  width: 24px;
-  border-radius: 0;
-  background: #FF007F;
-  border: 3px solid #111;
-  cursor: pointer;
-  box-shadow: 2px 2px 0px 0px #111;
-}
-
-input[type=range]::-moz-range-track {
-  width: 100%;
-  height: 12px;
-  cursor: pointer;
-  background: #fff;
-  border: 3px solid #111;
-}
-
-input[type=range]:focus {
-  outline: none;
+  .accent-purple {
+    --accent-base: #a855f7;
+    --accent-hover: #9333ea;
+    --accent-light: rgba(168, 85, 247, 0.1);
+  }
 }

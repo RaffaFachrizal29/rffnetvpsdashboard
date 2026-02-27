@@ -1,5 +1,5 @@
 {
-  "name": "Rffnet VPS",
-  "description": "Layanan pembelian VPS IPv6 Only dengan tema retro 90s.",
+  "name": "Rffnet VPS Dashboard",
+  "description": "A web-based dashboard for managing VPS resources, terminal access, and application installation.",
   "requestFramePermissions": []
 }
