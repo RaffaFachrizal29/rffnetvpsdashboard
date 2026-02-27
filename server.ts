@@ -1,536 +1,140 @@
-import express from 'express';
-import { createServer as createViteServer } from 'vite';
-import { createServer } from 'http';
-import { Server } from 'socket.io';
-import si from 'systeminformation';
-import { Client } from 'ssh2';
-import jwt from 'jsonwebtoken';
-import cors from 'cors';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import dotenv from 'dotenv';
-import multer from 'multer';
+import express from "express";
+import { createServer as createViteServer } from "vite";
+import Database from "better-sqlite3";
+import cookieParser from "cookie-parser";
+import path from "path";
+import { fileURLToPath } from "url";
 
-dotenv.config();
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const db = new Database("rffnet.db");
 
-const execAsync = promisify(exec);
-const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-rffnet-vps';
-const upload = multer({ storage: multer.memoryStorage() });
+// Initialize Database
+db.exec(`
+  CREATE TABLE IF NOT EXISTS orders (
+    id TEXT PRIMARY KEY,
+    name TEXT,
+    phone TEXT,
+    email TEXT,
+    username TEXT,
+    password TEXT,
+    ram_label TEXT,
+    ram_price INTEGER,
+    cpu_cores INTEGER,
+    cpu_price INTEGER,
+    has_ipv4 INTEGER,
+    ipv4_price INTEGER,
+    total_price INTEGER,
+    status TEXT DEFAULT 'PENDING',
+    ipv6 TEXT,
+    ipv4_addr TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+
+// Migration: Add domain column if it doesn't exist
+const tableInfo = db.prepare("PRAGMA table_info(orders)").all();
+const hasDomain = tableInfo.some((col: any) => col.name === "domain");
+if (!hasDomain) {
+  db.exec("ALTER TABLE orders ADD COLUMN domain TEXT");
+}
 
 async function startServer() {
   const app = express();
-  const httpServer = createServer(app);
-  const io = new Server(httpServer, {
-    cors: { origin: '*' }
-  });
   const PORT = 3000;
 
-  app.use(cors());
-  app.use(express.json({ limit: '50mb' }));
+  app.use(express.json());
+  app.use(cookieParser());
 
   // API Routes
-  app.post('/api/auth/login', async (req, res) => {
-    const { username, password, host = '127.0.0.1', port = 22 } = req.body;
-    
-    // In preview mode, allow a dummy login if SSH fails or for testing
-    const isPreview = process.env.NODE_ENV !== 'production';
-
-    const conn = new Client();
-    conn.on('ready', () => {
-      conn.end();
-      const token = jwt.sign({ username, host, port, password }, JWT_SECRET, { expiresIn: '1h' });
-      res.json({ token, username });
-    }).on('error', (err) => {
-      if (isPreview && username === 'admin' && password === 'admin') {
-        const token = jwt.sign({ username, host, port, password, isDummy: true }, JWT_SECRET, { expiresIn: '1h' });
-        return res.json({ token, username });
-      }
-      res.status(401).json({ error: 'Authentication failed: ' + err.message });
-    }).connect({
-      host,
-      port,
-      username,
-      password,
-      readyTimeout: 5000
-    });
+  app.post("/api/orders", (req, res) => {
+    const { id, name, phone, email, username, password, domain, ram_label, ram_price, cpu_cores, cpu_price, has_ipv4, ipv4_price, total_price } = req.body;
+    try {
+      const stmt = db.prepare(`
+        INSERT INTO orders (id, name, phone, email, username, password, domain, ram_label, ram_price, cpu_cores, cpu_price, has_ipv4, ipv4_price, total_price)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      stmt.run(id, name, phone, email, username, password, domain || null, ram_label, ram_price, cpu_cores, cpu_price, has_ipv4 ? 1 : 0, ipv4_price, total_price);
+      res.json({ success: true });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Failed to create order" });
+    }
   });
 
-  // Middleware to verify JWT
-  const authenticateToken = (req: any, res: any, next: any) => {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-    if (token == null) return res.sendStatus(401);
+  app.get("/api/orders/:id", (req, res) => {
+    const order = db.prepare("SELECT * FROM orders WHERE id = ?").get(req.params.id);
+    if (order) {
+      res.json(order);
+    } else {
+      res.status(404).json({ error: "Order not found" });
+    }
+  });
 
-    jwt.verify(token, JWT_SECRET, (err: any, user: any) => {
-      if (err) return res.sendStatus(403);
-      req.user = user;
+  // Admin Routes
+  app.post("/api/admin/login", (req, res) => {
+    const { username, password } = req.body;
+    if (username === "admin" && password === "P@ssw0rd") {
+      res.cookie("admin_token", "secret_token", { httpOnly: true, sameSite: 'none', secure: true });
+      res.json({ success: true });
+    } else {
+      res.status(401).json({ error: "Invalid credentials" });
+    }
+  });
+
+  const authMiddleware = (req: any, res: any, next: any) => {
+    if (req.cookies.admin_token === "secret_token") {
       next();
-    });
+    } else {
+      res.status(401).json({ error: "Unauthorized" });
+    }
   };
 
-  app.get('/api/stats', authenticateToken, async (req: any, res) => {
+  app.get("/api/admin/orders", authMiddleware, (req, res) => {
+    const orders = db.prepare("SELECT * FROM orders ORDER BY created_at DESC").all();
+    res.json(orders);
+  });
+
+  app.post("/api/admin/confirm/:id", authMiddleware, (req, res) => {
+    const { ipv6, ipv4_addr } = req.body;
     try {
-      const [cpu, mem, os, net, disk, time] = await Promise.all([
-        si.cpu(),
-        si.mem(),
-        si.osInfo(),
-        si.networkInterfaces(),
-        si.fsSize(),
-        si.time()
-      ]);
-
-      // Find IPv6
-      let ipv6 = '';
-      if (Array.isArray(net)) {
-        for (const n of net) {
-          if (n.ip6 && n.ip6 !== '::1' && !n.ip6.startsWith('fe80')) {
-            ipv6 = n.ip6;
-            break;
-          }
-        }
-      }
-
-      res.json({
-        cpu: {
-          manufacturer: cpu.manufacturer,
-          brand: cpu.brand,
-          cores: cpu.cores,
-          speed: cpu.speed
-        },
-        memory: {
-          total: mem.total,
-          used: mem.active,
-          free: mem.available
-        },
-        disk: disk.map(d => ({
-          fs: d.fs,
-          size: d.size,
-          used: d.used,
-          use: d.use
-        })),
-        os: {
-          hostname: os.hostname,
-          distro: os.distro,
-          release: os.release,
-          fqdn: os.fqdn || os.hostname
-        },
-        network: {
-          ipv6: ipv6 || 'Not available'
-        },
-        uptime: time.uptime
-      });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      const stmt = db.prepare("UPDATE orders SET status = 'CONFIRMED', ipv6 = ?, ipv4_addr = ? WHERE id = ?");
+      stmt.run(ipv6, ipv4_addr || null, req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to confirm order" });
     }
   });
 
-  app.get('/api/apps/status', authenticateToken, async (req: any, res) => {
-    const allowedApps = ['apache2', 'nginx', 'postfix', 'mariadb-server', 'phpmyadmin', 'php'];
-    
-    if (req.user.isDummy) {
-      const dummyStatus = allowedApps.reduce((acc, app) => ({ ...acc, [app]: false }), {});
-      return res.json({ status: dummyStatus });
-    }
-
+  app.delete("/api/admin/orders/:id", authMiddleware, (req, res) => {
     try {
-      const conn = new Client();
-      conn.on('ready', () => {
-        // Check all apps at once using dpkg-query
-        const checkCmd = allowedApps.map(app => `dpkg-query -W -f='\${Status}' ${app} 2>/dev/null | grep -c "ok installed"`).join(' ; ');
-        
-        conn.exec(checkCmd, (err, stream) => {
-          if (err) {
-            conn.end();
-            return res.status(500).json({ error: err.message });
-          }
-          let output = '';
-          stream.on('close', () => {
-            conn.end();
-            const results = output.trim().split('\n');
-            const status = allowedApps.reduce((acc, app, index) => {
-              acc[app] = results[index] === '1';
-              return acc;
-            }, {} as Record<string, boolean>);
-            res.json({ status });
-          }).on('data', (data: any) => {
-            output += data.toString();
-          });
-        });
-      }).on('error', (err) => {
-        res.status(500).json({ error: 'SSH Connection failed: ' + err.message });
-      }).connect({
-        host: req.user.host,
-        port: req.user.port,
-        username: req.user.username,
-        password: req.user.password
-      });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      db.prepare("DELETE FROM orders WHERE id = ?").run(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete order" });
     }
   });
 
-  app.post('/api/apps/install', authenticateToken, async (req: any, res) => {
-    const { appName } = req.body;
-    const allowedApps = ['apache2', 'nginx', 'postfix', 'mariadb-server', 'phpmyadmin', 'php'];
-    
-    if (!allowedApps.includes(appName)) {
-      return res.status(400).json({ error: 'App not allowed' });
-    }
-
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.setHeader('Transfer-Encoding', 'chunked');
-
-    if (req.user.isDummy) {
-      res.write(`[Simulated] Starting installation of ${appName}...\n`);
-      setTimeout(() => {
-        res.write(`[Simulated] Successfully installed ${appName}\n`);
-        res.end();
-      }, 2000);
-      return;
-    }
-
-    try {
-      const conn = new Client();
-      conn.on('ready', () => {
-        conn.exec(`export PATH=$PATH:/usr/bin:/bin:/usr/sbin:/sbin && sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ${appName}`, (err, stream) => {
-          if (err) {
-            conn.end();
-            res.write(`Error: ${err.message}\n`);
-            return res.end();
-          }
-          
-          stream.on('close', (code: any, signal: any) => {
-            conn.end();
-            if (code === 0) {
-              res.write(`\n--- Successfully installed ${appName} ---\n`);
-            } else {
-              res.write(`\n--- Installation failed with code ${code} ---\n`);
-            }
-            res.end();
-          }).on('data', (data: any) => {
-            res.write(data.toString());
-          }).stderr.on('data', (data: any) => {
-            res.write(data.toString());
-          });
-        });
-      }).on('error', (err) => {
-        res.write(`SSH Connection failed: ${err.message}\n`);
-        res.end();
-      }).connect({
-        host: req.user.host,
-        port: req.user.port,
-        username: req.user.username,
-        password: req.user.password
-      });
-    } catch (error: any) {
-      res.write(`Error: ${error.message}\n`);
-      res.end();
-    }
-  });
-
-  app.post('/api/apps/remove', authenticateToken, async (req: any, res) => {
-    const { appName } = req.body;
-    const allowedApps = ['apache2', 'nginx', 'postfix', 'mariadb-server', 'phpmyadmin', 'php'];
-    
-    if (!allowedApps.includes(appName)) {
-      return res.status(400).json({ error: 'App not allowed' });
-    }
-
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.setHeader('Transfer-Encoding', 'chunked');
-
-    if (req.user.isDummy) {
-      res.write(`[Simulated] Starting removal of ${appName}...\n`);
-      setTimeout(() => {
-        res.write(`[Simulated] Successfully removed ${appName}\n`);
-        res.end();
-      }, 2000);
-      return;
-    }
-
-    try {
-      const conn = new Client();
-      conn.on('ready', () => {
-        conn.exec(`export PATH=$PATH:/usr/bin:/bin:/usr/sbin:/sbin && sudo DEBIAN_FRONTEND=noninteractive apt-get remove --purge -y ${appName} && sudo apt-get autoremove -y`, (err, stream) => {
-          if (err) {
-            conn.end();
-            res.write(`Error: ${err.message}\n`);
-            return res.end();
-          }
-          
-          stream.on('close', (code: any, signal: any) => {
-            conn.end();
-            if (code === 0) {
-              res.write(`\n--- Successfully removed ${appName} ---\n`);
-            } else {
-              res.write(`\n--- Removal failed with code ${code} ---\n`);
-            }
-            res.end();
-          }).on('data', (data: any) => {
-            res.write(data.toString());
-          }).stderr.on('data', (data: any) => {
-            res.write(data.toString());
-          });
-        });
-      }).on('error', (err) => {
-        res.write(`SSH Connection failed: ${err.message}\n`);
-        res.end();
-      }).connect({
-        host: req.user.host,
-        port: req.user.port,
-        username: req.user.username,
-        password: req.user.password
-      });
-    } catch (error: any) {
-      res.write(`Error: ${error.message}\n`);
-      res.end();
-    }
-  });
-
-  // Helper to get SFTP connection
-  const getSftp = (user: any): Promise<{ conn: Client, sftp: any }> => {
-    return new Promise((resolve, reject) => {
-      if (user.isDummy) return reject(new Error('SFTP not available in simulated mode'));
-      const conn = new Client();
-      conn.on('ready', () => {
-        conn.sftp((err, sftp) => {
-          if (err) {
-            conn.end();
-            return reject(err);
-          }
-          resolve({ conn, sftp });
-        });
-      }).on('error', (err) => {
-        reject(err);
-      }).connect({
-        host: user.host,
-        port: user.port,
-        username: user.username,
-        password: user.password,
-        readyTimeout: 5000
-      });
-    });
-  };
-
-  // File Manager Routes
-  app.post('/api/files/list', authenticateToken, async (req: any, res) => {
-    const { path = '/' } = req.body;
-    try {
-      const { conn, sftp } = await getSftp(req.user);
-      sftp.readdir(path, (err: any, list: any) => {
-        conn.end();
-        if (err) return res.status(500).json({ error: err.message });
-        const files = list.map((item: any) => ({
-          name: item.filename,
-          isDir: item.attrs.isDirectory(),
-          size: item.attrs.size,
-          mtime: item.attrs.mtime * 1000,
-          permissions: item.attrs.mode.toString(8).slice(-3)
-        })).sort((a: any, b: any) => {
-          if (a.isDir && !b.isDir) return -1;
-          if (!a.isDir && b.isDir) return 1;
-          return a.name.localeCompare(b.name);
-        });
-        res.json({ files });
-      });
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  app.post('/api/files/read', authenticateToken, async (req: any, res) => {
-    const { path } = req.body;
-    try {
-      const { conn, sftp } = await getSftp(req.user);
-      sftp.readFile(path, 'utf8', (err: any, data: any) => {
-        conn.end();
-        if (err) return res.status(500).json({ error: err.message });
-        res.json({ content: data });
-      });
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  app.post('/api/files/write', authenticateToken, async (req: any, res) => {
-    const { path, content } = req.body;
-    try {
-      const { conn, sftp } = await getSftp(req.user);
-      sftp.writeFile(path, content, 'utf8', (err: any) => {
-        conn.end();
-        if (err) return res.status(500).json({ error: err.message });
-        res.json({ success: true });
-      });
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  app.post('/api/files/create', authenticateToken, async (req: any, res) => {
-    const { path, isDir } = req.body;
-    try {
-      const { conn, sftp } = await getSftp(req.user);
-      if (isDir) {
-        sftp.mkdir(path, (err: any) => {
-          conn.end();
-          if (err) return res.status(500).json({ error: err.message });
-          res.json({ success: true });
-        });
-      } else {
-        sftp.writeFile(path, '', 'utf8', (err: any) => {
-          conn.end();
-          if (err) return res.status(500).json({ error: err.message });
-          res.json({ success: true });
-        });
-      }
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  app.post('/api/files/delete', authenticateToken, async (req: any, res) => {
-    const { path, isDir } = req.body;
-    try {
-      const { conn, sftp } = await getSftp(req.user);
-      if (isDir) {
-        sftp.rmdir(path, (err: any) => {
-          conn.end();
-          if (err) return res.status(500).json({ error: err.message });
-          res.json({ success: true });
-        });
-      } else {
-        sftp.unlink(path, (err: any) => {
-          conn.end();
-          if (err) return res.status(500).json({ error: err.message });
-          res.json({ success: true });
-        });
-      }
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  app.post('/api/files/chmod', authenticateToken, async (req: any, res) => {
-    const { path, mode } = req.body;
-    try {
-      const { conn, sftp } = await getSftp(req.user);
-      sftp.chmod(path, parseInt(mode, 8), (err: any) => {
-        conn.end();
-        if (err) return res.status(500).json({ error: err.message });
-        res.json({ success: true });
-      });
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  app.post('/api/files/upload', authenticateToken, upload.single('file'), async (req: any, res) => {
-    const { path } = req.body;
-    const file = req.file;
-    if (!file) return res.status(400).json({ error: 'No file uploaded' });
-
-    try {
-      const { conn, sftp } = await getSftp(req.user);
-      const writeStream = sftp.createWriteStream(path);
-      writeStream.on('close', () => {
-        conn.end();
-        res.json({ success: true });
-      });
-      writeStream.on('error', (err: any) => {
-        conn.end();
-        res.status(500).json({ error: err.message });
-      });
-      writeStream.end(file.buffer);
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  // WebSocket for Terminal
-  io.on('connection', (socket) => {
-    let sshConn: Client | null = null;
-    let stream: any = null;
-
-    socket.on('auth', (token) => {
-      jwt.verify(token, JWT_SECRET, (err: any, user: any) => {
-        if (err) {
-          socket.emit('data', '\\r\\n*** Authentication failed ***\\r\\n');
-          socket.disconnect();
-          return;
-        }
-
-        if (user.isDummy) {
-          socket.emit('data', '\\r\\n*** Connected to Simulated Terminal (Preview Mode) ***\\r\\n$ ');
-          socket.on('data', (data) => {
-            if (data === '\\r') {
-              socket.emit('data', '\\r\\n$ ');
-            } else {
-              socket.emit('data', data);
-            }
-          });
-          return;
-        }
-
-        sshConn = new Client();
-        sshConn.on('ready', () => {
-          socket.emit('data', '\\r\\n*** Connected ***\\r\\n');
-          sshConn!.shell((err, s) => {
-            if (err) {
-              socket.emit('data', '\\r\\n*** Shell error: ' + err.message + ' ***\\r\\n');
-              return;
-            }
-            stream = s;
-            stream.on('close', () => {
-              sshConn!.end();
-              socket.disconnect();
-            }).on('data', (data: any) => {
-              socket.emit('data', data.toString('utf-8'));
-            });
-          });
-        }).on('error', (err) => {
-          socket.emit('data', '\\r\\n*** SSH Connection Error: ' + err.message + ' ***\\r\\n');
-          socket.disconnect();
-        }).connect({
-          host: user.host,
-          port: user.port,
-          username: user.username,
-          password: user.password
-        });
-      });
-    });
-
-    socket.on('data', (data) => {
-      if (stream) {
-        stream.write(data);
-      }
-    });
-
-    socket.on('resize', ({ cols, rows }) => {
-      if (stream) {
-        stream.setWindow(rows, cols, 0, 0);
-      }
-    });
-
-    socket.on('disconnect', () => {
-      if (sshConn) {
-        sshConn.end();
-      }
-    });
+  app.post("/api/admin/logout", (req, res) => {
+    res.clearCookie("admin_token");
+    res.json({ success: true });
   });
 
   // Vite middleware for development
-  if (process.env.NODE_ENV !== 'production') {
+  if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
-      appType: 'spa',
+      appType: "spa",
     });
     app.use(vite.middlewares);
   } else {
-    app.use(express.static('dist'));
+    app.use(express.static(path.join(__dirname, "dist")));
+    app.get("*", (req, res) => {
+      res.sendFile(path.join(__dirname, "dist", "index.html"));
+    });
   }
 
-  httpServer.listen(PORT, "::", () => {
-    console.log(`Server running on port ${PORT} (IPv4 and IPv6)`);
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server running on http://localhost:${PORT}`);
   });
 }
 
