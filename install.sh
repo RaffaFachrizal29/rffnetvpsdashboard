@@ -7,14 +7,15 @@
 
 set -e
 
-# 0. Fix for 'curl | bash' pipe issue
-# If the script is not running in an interactive terminal (e.g., piped via curl),
-# it will download itself and run interactively to allow TUI input.
+# 0. Fix for 'curl | bash' pipe issue to prevent infinite loops
 if [ ! -t 0 ]; then
     echo "[ INFO ] Pipe execution detected. Switching to interactive mode..."
     TMP_SCRIPT=$(mktemp)
     curl -fsSL https://github.com/RaffaFachrizal29/rffnetvpsdashboard/raw/refs/heads/main/install.sh -o "$TMP_SCRIPT"
-    bash "$TMP_SCRIPT"
+    
+    # The fix is here: < /dev/tty forces the new process to read from the real terminal, breaking the loop.
+    bash "$TMP_SCRIPT" < /dev/tty
+    
     rm -f "$TMP_SCRIPT"
     exit 0
 fi
