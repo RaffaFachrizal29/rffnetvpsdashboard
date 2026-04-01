@@ -1,118 +1,118 @@
 #!/usr/bin/env bash
 
 # ==============================================================================
-# Rffnet VPS Dashboard Universal TUI Installer
+# Rffnet VPS Dashboard Universal CLI Installer
 # Supported: Debian/Ubuntu, Arch Linux, Fedora, Gentoo, FreeBSD
 # ==============================================================================
 
+# Exit immediately if a command exits with a non-zero status
 set -e
 
-# 0. Fix for 'curl | bash' pipe issue to prevent infinite loops
-if [ ! -t 0 ]; then
-    echo "[ INFO ] Pipe execution detected. Switching to interactive mode..."
-    TMP_SCRIPT=$(mktemp)
-    curl -fsSL https://github.com/RaffaFachrizal29/rffnetvpsdashboard/raw/refs/heads/main/install.sh -o "$TMP_SCRIPT"
-    
-    # The fix is here: < /dev/tty forces the new process to read from the real terminal, breaking the loop.
-    bash "$TMP_SCRIPT" < /dev/tty
-    
-    rm -f "$TMP_SCRIPT"
-    exit 0
-fi
+# Color definitions
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+echo -e "${BLUE}======================================================${NC}"
+echo -e "${GREEN}   Rffnet VPS Dashboard Automated Installer${NC}"
+echo -e "${BLUE}======================================================${NC}\n"
 
 # Ensure the script is run as root
 if [ "$EUID" -ne 0 ]; then
-  echo "[ ERROR ] This script must be run as root."
-  echo "Try running: curl -fsSL <url> | sudo bash"
-  exit 1
+    echo -e "${RED}[ERROR] This script must be run as root.${NC}"
+    echo -e "Please run the command as follows:"
+    echo -e "${YELLOW}curl -fsSL https://raw.githubusercontent.com/RaffaFachrizal29/rffnetvpsdashboard/refs/heads/main/install.sh | sudo bash${NC}"
+    exit 1
 fi
 
-echo "[ INFO ] Detecting operating system and preparing environment..."
+echo -e "${YELLOW}[INFO] Detecting operating system and installing dependencies...${NC}"
 
 # 1. OS Detection and Dependency Installation
 if command -v apt-get >/dev/null 2>&1; then
     OS_FAMILY="Debian/Ubuntu"
-    apt-get update -y >/dev/null 2>&1
-    apt-get install -y whiptail git curl build-essential nodejs npm >/dev/null 2>&1
-    TUI="whiptail"
+    echo -e "${YELLOW}[INFO] Detected $OS_FAMILY. Updating repositories...${NC}"
+    apt-get update -y -qq
+    
+    echo -e "${YELLOW}[INFO] Installing Node.js repository...${NC}"
+    curl -fsSL https://deb.nodesource.com/setup_22.x | bash - > /dev/null 2>&1
+    
+    echo -e "${YELLOW}[INFO] Installing required packages...${NC}"
+    apt-get install -y git curl build-essential nodejs -qq
 
 elif command -v pacman >/dev/null 2>&1; then
     OS_FAMILY="Arch Linux"
-    pacman -Sy --noconfirm --needed libnewt git curl base-devel nodejs npm >/dev/null 2>&1
-    TUI="whiptail"
+    echo -e "${YELLOW}[INFO] Detected $OS_FAMILY. Installing required packages...${NC}"
+    pacman -Sy --noconfirm --needed git curl base-devel nodejs npm > /dev/null 2>&1
 
 elif command -v dnf >/dev/null 2>&1; then
     OS_FAMILY="Fedora/RHEL"
-    dnf install -y newt git curl make gcc gcc-c++ nodejs npm >/dev/null 2>&1
-    TUI="whiptail"
+    echo -e "${YELLOW}[INFO] Detected $OS_FAMILY. Installing required packages...${NC}"
+    dnf install -y git curl make gcc gcc-c++ nodejs npm > /dev/null 2>&1
 
 elif command -v pkg >/dev/null 2>&1; then
     OS_FAMILY="FreeBSD"
-    pkg install -y dialog git curl node npm >/dev/null 2>&1
-    TUI="dialog"
+    echo -e "${YELLOW}[INFO] Detected $OS_FAMILY. Installing required packages...${NC}"
+    pkg install -y git curl node npm > /dev/null 2>&1
 
 elif command -v emerge >/dev/null 2>&1; then
     OS_FAMILY="Gentoo"
-    emerge --quiet dev-util/dialog dev-vcs/git net-misc/curl net-libs/nodejs >/dev/null 2>&1
-    TUI="dialog"
+    echo -e "${YELLOW}[INFO] Detected $OS_FAMILY. Installing required packages...${NC}"
+    emerge --quiet dev-vcs/git net-misc/curl net-libs/nodejs > /dev/null 2>&1
 
 else
-    echo "[ ERROR ] Unsupported OS. Could not detect apt, pacman, dnf, pkg, or emerge."
+    echo -e "${RED}[ERROR] Unsupported OS. Could not detect apt, pacman, dnf, pkg, or emerge.${NC}"
     exit 1
 fi
 
-# 2. TUI Welcome Screen
-$TUI --title "Rffnet VPS Dashboard" \
-     --msgbox "Welcome to the Universal Rffnet Installer.\n\nDetected Environment: $OS_FAMILY\n\nThis script will configure Node.js, install PM2, and set up your web dashboard to run smoothly in the background." 12 60
+echo -e "${GREEN}[SUCCESS] Dependencies installed for $OS_FAMILY.${NC}\n"
 
-if ! $TUI --title "Confirm Installation" \
-          --yesno "Are you ready to begin the installation on this $OS_FAMILY server?" 8 60; then
-    clear
-    echo "[ INFO ] Installation aborted by the user."
-    exit 0
+# 2. Global NPM Packages
+echo -e "${YELLOW}[INFO] Installing PM2 process manager globally...${NC}"
+npm install -g pm2 --silent
+
+# 3. Repository Cloning
+echo -e "${YELLOW}[INFO] Setting up Rffnet repository...${NC}"
+if [ -d "rffnetvpsdashboard" ]; then
+    echo -e "${YELLOW}[INFO] Removing existing directory...${NC}"
+    rm -rf rffnetvpsdashboard
 fi
 
-# 3. Execution with Progress Bar
-{
-    echo -e "XXX\n15\nInstalling PM2 process manager globally...\nXXX"
-    npm install -g pm2 --silent > /dev/null 2>&1
+git clone https://github.com/RaffaFachrizal29/rffnetvpsdashboard.git -q
+cd rffnetvpsdashboard
 
-    echo -e "XXX\n35\nCleaning up previous repository data...\nXXX"
-    if [ -d "rffnetvpsdashboard" ]; then
-        rm -rf rffnetvpsdashboard
-    fi
+# 4. Build Process
+echo -e "${YELLOW}[INFO] Installing NPM dependencies...${NC}"
+npm install --silent
 
-    echo -e "XXX\n50\nCloning the Rffnet repository...\nXXX"
-    git clone https://github.com/RaffaFachrizal29/rffnetvpsdashboard.git -q
-    cd rffnetvpsdashboard
+echo -e "${YELLOW}[INFO] Building the dashboard application...${NC}"
+npm run build > /dev/null 2>&1
 
-    echo -e "XXX\n75\nInstalling NPM dependencies and building the application...\nXXX"
-    npm install --silent > /dev/null 2>&1
-    npm run build > /dev/null 2>&1
+# 5. PM2 Setup
+echo -e "${YELLOW}[INFO] Starting application with PM2...${NC}"
+NODE_ENV=production pm2 start npm --name "rffnet" -- run start > /dev/null 2>&1
+pm2 save > /dev/null 2>&1
 
-    echo -e "XXX\n90\nStarting application and configuring PM2 on boot...\nXXX"
-    NODE_ENV=production pm2 start npm --name "rffnet" -- run start > /dev/null 2>&1
-    pm2 save > /dev/null 2>&1
-    
-    # Smart PM2 startup configuration (systemd vs init.d/rc.d)
-    if command -v systemctl >/dev/null 2>&1; then
-        pm2 startup systemd -u root --hp /root > /dev/null 2>&1 || true
-    else
-        pm2 startup > /dev/null 2>&1 || true
-    fi
+echo -e "${YELLOW}[INFO] Configuring PM2 to start on boot...${NC}"
+if command -v systemctl >/dev/null 2>&1; then
+    pm2 startup systemd -u root --hp /root > /dev/null 2>&1 || true
+else
+    pm2 startup > /dev/null 2>&1 || true
+fi
 
-    echo -e "XXX\n100\nFinalizing installation...\nXXX"
-    sleep 1
-} | $TUI --title "Installing Rffnet ($OS_FAMILY)" --gauge "Please wait while we configure your server..." 8 60
-
-# Retrieve the server's public IP address gracefully
+# 6. Retrieve IP Address
 SERVER_IP=$(curl -s ifconfig.me || hostname -I | awk '{print $1}' || echo "YOUR_SERVER_IP")
 
-# 4. Final Success Screen
-$TUI --title "Installation Successful!" \
-     --msgbox "The Rffnet VPS Dashboard is now live!\n\nYou can access your dashboard via your web browser at:\nhttp://${SERVER_IP}:3000\n\nHelpful PM2 Commands:\n- Check Status: pm2 status rffnet\n- View Logs: pm2 logs rffnet\n- Restart App: pm2 restart rffnet" 14 65
-
-# Clear the terminal and leave a final output link
-clear
-echo -e "\e[32m[ SUCCESS ] Installation Complete on $OS_FAMILY!\e[0m"
-echo -e "Access your Rffnet dashboard here: \e[1;33mhttp://${SERVER_IP}:3000\e[0m\n"
+# 7. Final Output
+echo -e "\n${BLUE}======================================================${NC}"
+echo -e "${GREEN}   [SUCCESS] Installation Complete!${NC}"
+echo -e "${BLUE}======================================================${NC}"
+echo -e "Your Rffnet VPS Dashboard is now running."
+echo -e "Access it in your web browser at:\n"
+echo -e "   ${YELLOW}http://${SERVER_IP}:3000${NC}\n"
+echo -e "Useful Commands:"
+echo -e "   pm2 status rffnet   (Check status)"
+echo -e "   pm2 logs rffnet     (View error/access logs)"
+echo -e "   pm2 restart rffnet  (Restart the dashboard)"
+echo -e "${BLUE}======================================================${NC}\n"
