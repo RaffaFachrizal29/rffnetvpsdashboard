@@ -7,55 +7,67 @@
 
 set -e
 
+# 0. Fix for 'curl | bash' pipe issue
+# If the script is not running in an interactive terminal (e.g., piped via curl),
+# it will download itself and run interactively to allow TUI input.
+if [ ! -t 0 ]; then
+    echo "[ INFO ] Pipe execution detected. Switching to interactive mode..."
+    TMP_SCRIPT=$(mktemp)
+    curl -fsSL https://github.com/RaffaFachrizal29/rffnetvpsdashboard/raw/refs/heads/main/install.sh -o "$TMP_SCRIPT"
+    bash "$TMP_SCRIPT"
+    rm -f "$TMP_SCRIPT"
+    exit 0
+fi
+
 # Ensure the script is run as root
 if [ "$EUID" -ne 0 ]; then
-  echo "Error: This script must be run as root."
+  echo "[ ERROR ] This script must be run as root."
   echo "Try running: curl -fsSL <url> | sudo bash"
   exit 1
 fi
 
-echo "Detecting operating system and preparing environment..."
+echo "[ INFO ] Detecting operating system and preparing environment..."
 
-# 1. OS Detection and Dependency Installation (Output is visible to catch errors)
+# 1. OS Detection and Dependency Installation
 if command -v apt-get >/dev/null 2>&1; then
     OS_FAMILY="Debian/Ubuntu"
-    apt-get update -y
-    apt-get install -y whiptail git curl build-essential nodejs npm
+    apt-get update -y >/dev/null 2>&1
+    apt-get install -y whiptail git curl build-essential nodejs npm >/dev/null 2>&1
     TUI="whiptail"
 
 elif command -v pacman >/dev/null 2>&1; then
     OS_FAMILY="Arch Linux"
-    pacman -Sy --noconfirm --needed libnewt git curl base-devel nodejs npm
+    pacman -Sy --noconfirm --needed libnewt git curl base-devel nodejs npm >/dev/null 2>&1
     TUI="whiptail"
 
 elif command -v dnf >/dev/null 2>&1; then
     OS_FAMILY="Fedora/RHEL"
-    dnf install -y newt git curl make gcc gcc-c++ nodejs npm
+    dnf install -y newt git curl make gcc gcc-c++ nodejs npm >/dev/null 2>&1
     TUI="whiptail"
 
 elif command -v pkg >/dev/null 2>&1; then
     OS_FAMILY="FreeBSD"
-    pkg install -y dialog git curl node npm
+    pkg install -y dialog git curl node npm >/dev/null 2>&1
     TUI="dialog"
 
 elif command -v emerge >/dev/null 2>&1; then
     OS_FAMILY="Gentoo"
-    emerge --quiet dev-util/dialog dev-vcs/git net-misc/curl net-libs/nodejs
+    emerge --quiet dev-util/dialog dev-vcs/git net-misc/curl net-libs/nodejs >/dev/null 2>&1
     TUI="dialog"
 
 else
-    echo "Error: Unsupported OS. Could not detect apt, pacman, dnf, pkg, or emerge."
+    echo "[ ERROR ] Unsupported OS. Could not detect apt, pacman, dnf, pkg, or emerge."
     exit 1
 fi
 
-# 2. TUI Welcome Screen (Forced to read from /dev/tty for curl | bash compatibility)
+# 2. TUI Welcome Screen
 $TUI --title "Rffnet VPS Dashboard" \
-     --msgbox "Welcome to the Universal Rffnet Installer.\n\nDetected Environment: $OS_FAMILY\n\nThis script will configure Node.js, install PM2, and set up your web dashboard to run smoothly in the background." 12 60 < /dev/tty
+     --msgbox "Welcome to the Universal Rffnet Installer.\n\nDetected Environment: $OS_FAMILY\n\nThis script will configure Node.js, install PM2, and set up your web dashboard to run smoothly in the background." 12 60
 
 if ! $TUI --title "Confirm Installation" \
-          --yesno "Are you ready to begin the installation on this $OS_FAMILY server?" 8 60 < /dev/tty; then
+          --yesno "Are you ready to begin the installation on this $OS_FAMILY server?" 8 60; then
     clear
-    echo "Installation aborted by the user."
+    echo "[ INFO ] Installation aborted by the user."
     exit 0
 fi
 
@@ -96,10 +108,10 @@ fi
 SERVER_IP=$(curl -s ifconfig.me || hostname -I | awk '{print $1}' || echo "YOUR_SERVER_IP")
 
 # 4. Final Success Screen
-$TUI --title "Installation Successful! 🎉" \
-     --msgbox "The Rffnet VPS Dashboard is now live!\n\nYou can access your dashboard via your web browser at:\nhttp://${SERVER_IP}:3000\n\nHelpful PM2 Commands:\n- Check Status: pm2 status rffnet\n- View Logs: pm2 logs rffnet\n- Restart App: pm2 restart rffnet" 14 65 < /dev/tty
+$TUI --title "Installation Successful!" \
+     --msgbox "The Rffnet VPS Dashboard is now live!\n\nYou can access your dashboard via your web browser at:\nhttp://${SERVER_IP}:3000\n\nHelpful PM2 Commands:\n- Check Status: pm2 status rffnet\n- View Logs: pm2 logs rffnet\n- Restart App: pm2 restart rffnet" 14 65
 
 # Clear the terminal and leave a final output link
 clear
-echo -e "\e[32m✔ Installation Complete on $OS_FAMILY!\e[0m"
+echo -e "\e[32m[ SUCCESS ] Installation Complete on $OS_FAMILY!\e[0m"
 echo -e "Access your Rffnet dashboard here: \e[1;33mhttp://${SERVER_IP}:3000\e[0m\n"
