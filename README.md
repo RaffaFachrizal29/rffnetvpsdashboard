@@ -1,5 +1,11 @@
-<h1>How to install?</h1>
-<p>Just simply run the command bellow</p>
-<code>curl -fsSL https://github.com/RaffaFachrizal29/rffnetvpsdashboard/raw/refs/heads/main/install.sh | bash</code>
-<br>
-<i>Make sure you have <code>curl</code> installed.</i>
+# rffnet VPS Dashboard
+
+**rffnet VPS Dashboard** is a custom, web-based control panel designed to streamline your server management. It provides a centralized and user-friendly interface for essential VPS tasks, featuring real-time resource monitoring, a built-in web terminal, and convenient one-click application installations.
+
+## Installation
+
+You can install the dashboard quickly by running the following automated script directly in your terminal:
+
+```bash
+curl -fsSL https://github.com/RaffaFachrizal29/rffnetvpsdashboard/raw/refs/heads/main/install.sh | bash
+```
