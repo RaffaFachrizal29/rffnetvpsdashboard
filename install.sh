@@ -27,6 +27,128 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
+echo -e "${YELLOW}[INFO] Detecting operating system and preparing installation...${NC}\n"
+
+# 1. OS Detection and Dependency Installation (Verbose Output)
+if command -v apt-get >/dev/null 2>&1; then
+    OS_FAMILY="Debian/Ubuntu"
+    echo -e "${YELLOW}[INFO] Detected $OS_FAMILY. Updating repositories...${NC}"
+    apt-get update -y
+    
+    echo -e "\n${YELLOW}[INFO] Installing Node.js repository...${NC}"
+    curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+    
+    echo -e "\n${YELLOW}[INFO] Installing required packages...${NC}"
+    apt-get install -y git curl build-essential nodejs
+
+elif command -v pacman >/dev/null 2>&1; then
+    OS_FAMILY="Arch Linux"
+    echo -e "${YELLOW}[INFO] Detected $OS_FAMILY. Installing required packages...${NC}"
+    pacman -Sy --noconfirm --needed git curl base-devel nodejs npm
+
+elif command -v dnf >/dev/null 2>&1; then
+    OS_FAMILY="Fedora/RHEL"
+    echo -e "${YELLOW}[INFO] Detected $OS_FAMILY. Installing required packages...${NC}"
+    dnf install -y git curl make gcc gcc-c++ nodejs npm
+
+elif command -v pkg >/dev/null 2>&1; then
+    OS_FAMILY="FreeBSD"
+    echo -e "${YELLOW}[INFO] Detected $OS_FAMILY. Installing required packages...${NC}"
+    pkg install -y git curl node npm
+
+elif command -v emerge >/dev/null 2>&1; then
+    OS_FAMILY="Gentoo"
+    echo -e "${YELLOW}[INFO] Detected $OS_FAMILY. Installing required packages...${NC}"
+    emerge dev-vcs/git net-misc/curl net-libs/nodejs
+
+else
+    echo -e "${RED}[ERROR] Unsupported OS. Could not detect apt, pacman, dnf, pkg, or emerge.${NC}"
+    exit 1
+fi
+
+echo -e "\n${GREEN}[SUCCESS] Base dependencies installed for $OS_FAMILY.${NC}\n"
+
+# 2. Global NPM Packages (Verbose Output)
+echo -e "${YELLOW}[INFO] Installing PM2 process manager globally...${NC}"
+npm install -g pm2
+echo ""
+
+# 3. Repository Cloning (Verbose Output)
+echo -e "${YELLOW}[INFO] Setting up Rffnet repository...${NC}"
+if [ -d "rffnetvpsdashboard" ]; then
+    rm -rf rffnetvpsdashboard
+fi
+
+git clone https://github.com/RaffaFachrizal29/rffnetvpsdashboard.git
+cd rffnetvpsdashboard
+echo ""
+
+# 4. Build Process (Verbose Output)
+echo -e "${YELLOW}[INFO] Installing application NPM dependencies...${NC}"
+npm install
+echo ""
+
+echo -e "${YELLOW}[INFO] Building the dashboard application...${NC}"
+npm run build
+echo ""
+
+# 5. PM2 Setup (Verbose Output)
+echo -e "${YELLOW}[INFO] Starting application with PM2...${NC}"
+NODE_ENV=production pm2 start npm --name "rffnet" -- run start
+echo ""
+
+echo -e "${YELLOW}[INFO] Saving PM2 state and configuring boot startup...${NC}"
+pm2 save
+
+if command -v systemctl >/dev/null 2>&1; then
+    pm2 startup systemd -u root --hp /root || true
+else
+    pm2 startup || true
+fi
+
+# 6. Retrieve IP Address (Silent background check)
+SERVER_IP=$(curl -s ifconfig.me || hostname -I | awk '{print $1}' || echo "YOUR_SERVER_IP")
+
+# 7. Final Output
+echo -e "\n${BLUE}======================================================${NC}"
+echo -e "${GREEN}   [SUCCESS] Installation Complete!${NC}"
+echo -e "${BLUE}======================================================${NC}"
+echo -e "Your Rffnet VPS Dashboard is now online."
+echo -e "Access it in your web browser at:\n"
+echo -e "   ${YELLOW}http://${SERVER_IP}:3000${NC}\n"
+echo -e "Useful Commands:"
+echo -e "   pm2 status rffnet   (Check status)"
+echo -e "   pm2 logs rffnet     (View error/access logs)"
+echo -e "   pm2 restart rffnet  (Restart the dashboard)"
+echo -e "${BLUE}======================================================${NC}\n"#!/usr/bin/env bash
+
+# ==============================================================================
+# Rffnet VPS Dashboard Universal CLI Installer
+# Supported: Debian/Ubuntu, Arch Linux, Fedora, Gentoo, FreeBSD
+# ==============================================================================
+
+# Exit immediately if a command exits with a non-zero status
+set -e
+
+# Color definitions
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+echo -e "${BLUE}======================================================${NC}"
+echo -e "${GREEN}   Rffnet VPS Dashboard Automated Installer${NC}"
+echo -e "${BLUE}======================================================${NC}\n"
+
+# Ensure the script is run as root
+if [ "$EUID" -ne 0 ]; then
+    echo -e "${RED}[ERROR] This script must be run as root.${NC}"
+    echo -e "Please run the command as follows:"
+    echo -e "${YELLOW}curl -fsSL https://raw.githubusercontent.com/RaffaFachrizal29/rffnetvpsdashboard/refs/heads/main/install.sh | sudo bash${NC}"
+    exit 1
+fi
+
 echo -e "${YELLOW}[INFO] Detecting operating system and installing dependencies...${NC}"
 
 # 1. OS Detection and Dependency Installation
