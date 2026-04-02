@@ -529,7 +529,7 @@ async function startServer() {
     app.use(express.static('dist'));
   }
 
-  httpServer.listen(PORT, "::", () => {
+  httpServer.listen(PORT, () => {
     console.log(`Server running on port ${PORT} (IPv4 and IPv6)`);
   });
 }
