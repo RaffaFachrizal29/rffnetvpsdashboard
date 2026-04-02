@@ -7,5 +7,5 @@
 You can install the dashboard quickly by running the following automated script directly in your terminal:
 
 ```bash
-curl -fsSL https://github.com/RaffaFachrizal29/rffnetvpsdashboard/raw/refs/heads/main/install.sh | bash
+curl -fsSL https://github.com/RaffaFachrizal29/rffnetvpsdashboard/raw/refs/heads/main/install.sh | sudo bash
 ```
